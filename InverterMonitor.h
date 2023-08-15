@@ -59,6 +59,7 @@ public:
   void operator=(const InverterMonitor &) = delete;
   static InverterMonitor *get_instance();
 
+  BinarySensor *connected = new BinarySensor();
   TextSensor *connection_status = new TextSensor();
   Sensor *v_in_1 = new Sensor();
   Sensor *v_in_2 = new Sensor();
@@ -95,6 +96,7 @@ public:
       if (!connection)
       {
         connection = 1;
+        connected->publish_state(true);
         connection_status->publish_state(CONNECTED);
       }
       turn_led_on();
@@ -183,6 +185,7 @@ public:
       if (connection)
       {
         connection = 0;
+        connected->publish_state(false);
         connection_status->publish_state(DISCONNECTED);
       }
       ESP_LOGD(TAG, "Inverter not conntected");
