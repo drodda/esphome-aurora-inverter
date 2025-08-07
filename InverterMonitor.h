@@ -46,13 +46,14 @@ class InverterMonitor : public PollingComponent
 {
 
 protected:
-  InverterMonitor() : PollingComponent(15000) {}
+  InverterMonitor() : PollingComponent(30000) {}
   static InverterMonitor *instance_;
 
 private:
   ABBAurora *inverter;
   bool led_state;
   uint8_t connection = 0;
+  uint32_t failed_updates = 0;
 
 public:
   InverterMonitor(InverterMonitor &other) = delete;
@@ -98,6 +99,7 @@ public:
         connection = 1;
         connected->publish_state(true);
         connection_status->publish_state(CONNECTED);
+	failed_updates = 0;
       }
       turn_led_on();
 
@@ -188,7 +190,17 @@ public:
         connected->publish_state(false);
         connection_status->publish_state(DISCONNECTED);
       }
-      ESP_LOGD(TAG, "Inverter not conntected");
+      ESP_LOGD(TAG, "Inverter not connected");
+      failed_updates++;
+      if (failed_updates >= 30) {
+        // ESP_LOGW(TAG, "Forcing reboot");
+	// ESP.restart();
+        ESP_LOGW(TAG, "Forcing new connection");
+        ABBAurora::setup(INVERTER_MONITOR_SERIAL, RX, TX, TX_CONTROL_GPIO);
+	delete inverter;
+        inverter = new ABBAurora(INVERTER_ADDRESS);
+        failed_updates = 0;
+      }
     }
   }
 
